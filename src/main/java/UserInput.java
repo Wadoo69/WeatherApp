@@ -12,7 +12,6 @@ public class UserInput {
             return getLatitudeInput(scanner, prompt);
         }
     }
-
     public static String getLongitudeInput(Scanner scanner, String prompt) {
         System.out.print(prompt);
         double longitude = scanner.nextDouble();
@@ -24,17 +23,14 @@ public class UserInput {
             return getLongitudeInput(scanner, prompt);
         }
     }
-
     public static int getIntInput(Scanner scanner, String prompt) {
         System.out.print(prompt);
         return scanner.nextInt();
     }
-
     public static String getStringInput(Scanner scanner, String prompt) {
         System.out.print(prompt);
         return scanner.nextLine();
     }
-
     public static String getDateInput(Scanner scanner, String prompt) {
         String dateRegex = "\\d{4}-\\d{2}-\\d{2}";
         String input;
@@ -48,6 +44,5 @@ public class UserInput {
             }
         }
     }
-
 }
 

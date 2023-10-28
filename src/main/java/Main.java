@@ -39,23 +39,22 @@ public class Main {
             e.printStackTrace();
         }
     }
-
     private static void insertLocationData(Connection connection, Scanner scanner) {
         int id = UserInput.getIntInput(scanner, "Enter ID: ");
-        String latitudeStr = UserInput.getLatitudeInput(scanner, "Enter Latitude (e.g., -90 to 90): ");
-        String longitudeStr = UserInput.getLongitudeInput(scanner, "Enter Longitude (e.g., -180 to 180): ");
+        String latitudeStr = UserInput.getLatitudeInput(scanner, "Enter rounded up latitude (e.g., -90 to 90): ");
+        String longitudeStr = UserInput.getLongitudeInput(scanner, "Enter rounded up longitude (e.g., -180 to 180): ");
         String cityName = UserInput.getStringInput(scanner, "Enter City Name: ");
         String region = UserInput.getStringInput(scanner, "Enter Region: ");
         String countryName = UserInput.getStringInput(scanner, "Enter Country Name: ");
         LocationDataInsertion.insertLocationData(connection, id, latitudeStr, longitudeStr, cityName, region, countryName);
         System.out.println("Location data inserted successfully.");
     }
-
     private static void insertWeatherData(Connection connection, Scanner scanner) {
         int locationId = UserInput.getIntInput(scanner, "Enter Location ID: ");
         if (ValidationHelper.isIdValid(connection, locationId)) {
+            scanner.nextLine();
             String date = UserInput.getDateInput(scanner, "Enter Date (e.g., 2020-01-01): ");
-            String temperature = UserInput.getStringInput(scanner, "Enter Temperature (e.g., 20.5): ");
+            String temperature = UserInput.getStringInput(scanner, "Enter Temperature in Celsius (e.g., 20.5): ");
             String humidity = UserInput.getStringInput(scanner, "Enter Humidity (e.g., 0.5): ");
             String pressure = UserInput.getStringInput(scanner, "Enter Pressure (e.g., 1000.0): ");
             WeatherDataInsertion.insertWeatherData(connection, locationId, date, temperature, pressure, humidity);
@@ -64,7 +63,6 @@ public class Main {
             System.out.println("Invalid ID. Please enter a valid ID.");
         }
     }
-
     private static void displayAllLocations(Connection connection) {
         try {
             Statement statement = connection.createStatement();
@@ -92,7 +90,23 @@ public class Main {
             e.printStackTrace();
         }
     }
+    private static String[] getLocationInfo(Connection connection, int locationID) {
+        try {
+            String query = "SELECT CityName, CountryName FROM locations WHERE ID = ?";
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.setInt(1, locationID);
+            ResultSet result = statement.executeQuery();
 
+            if (result.next()) {
+                String cityName = result.getString("CityName");
+                String countryName = result.getString("CountryName");
+                return new String[]{cityName, countryName};
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new String[]{"", ""};
+    }
     private static void fetchWeatherData(Connection connection, Scanner scanner) {
         System.out.println("Choose the input option:");
         System.out.println("1. Latitude and Longitude");
@@ -100,17 +114,24 @@ public class Main {
         int inputChoice = scanner.nextInt();
         scanner.nextLine();
 
+        String cityName = "";
+        String countryName = "";
+
         if (inputChoice == 1) {
-            System.out.print("Enter the rounded up Latitude (e.g, 34.56 -> 35): ");
+            System.out.print("Enter the rounded up Latitude(e.g, 34.56->35): ");
             double latitude = scanner.nextDouble();
             scanner.nextLine();
-            System.out.print("Enter the rounded up Longitude (e.g, 114.66 -> 115): ");
+            System.out.print("Enter the rounded up Longitude(e.g, 114.66->114): ");
             double longitude = scanner.nextDouble();
             scanner.nextLine();
 
             int locationID = getLocationIDByGeoData(connection, latitude, longitude);
 
             if (locationID != -1) {
+                String[] locationInfo = getLocationInfo(connection, locationID);
+                cityName = locationInfo[0];
+                countryName = locationInfo[1];
+
                 System.out.print("Enter Date (e.g., 2020-01-01): ");
                 String date = scanner.nextLine();
                 fetchWeatherData(connection, locationID, date);
@@ -119,9 +140,9 @@ public class Main {
             }
         } else if (inputChoice == 2) {
             System.out.print("Enter City Name: ");
-            String cityName = scanner.nextLine();
+            cityName = scanner.nextLine();
             System.out.print("Enter Country Name: ");
-            String countryName = scanner.nextLine();
+            countryName = scanner.nextLine();
 
             int locationID = getLocationIDByName(connection, cityName, countryName);
 
@@ -135,8 +156,12 @@ public class Main {
         } else {
             System.out.println("Invalid input option.");
         }
-    }
 
+        if (!cityName.isEmpty() && !countryName.isEmpty()) {
+            System.out.println("City: " + cityName);
+            System.out.println("Country: " + countryName);
+        }
+    }
     private static int getLocationIDByGeoData(Connection connection, double latitude, double longitude) {
         try {
             String query = "SELECT ID FROM locations WHERE ROUND(Latitude, 0) = ? AND ROUND(Longitude, 0) = ?";
@@ -152,7 +177,6 @@ public class Main {
         }
         return -1;
     }
-
     private static int getLocationIDByName(Connection connection, String cityName, String countryName) {
         try {
             String query = "SELECT ID FROM locations WHERE CityName = ? AND CountryName = ?";
@@ -168,11 +192,9 @@ public class Main {
         }
         return -1;
     }
-
     private static void fetchWeatherData(Connection connection, int locationID, String date) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         dateFormat.setLenient(false);
-
         try {
             dateFormat.parse(date);
         } catch (ParseException e) {
@@ -196,7 +218,7 @@ public class Main {
                 double humidity = result.getDouble("Humidity");
                 double pressure = result.getDouble("Pressure");
                 System.out.println("Date: " + dataDate);
-                System.out.println("Temperature: " + temperature);
+                System.out.println("Temperature: " + temperature +"C");
                 System.out.println("Humidity: " + humidity);
                 System.out.println("Pressure: " + pressure);
             }
